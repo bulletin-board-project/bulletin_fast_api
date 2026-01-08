@@ -3,17 +3,21 @@ User Pydantic schemas for request/response validation
 """
 from datetime import date, datetime
 from typing import Optional
-from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_serializer, field_validator
+
+from app.models.user import UserRole
 
 
 class UserBase(BaseModel):
     """Base user schema"""
     name: str = Field(..., min_length=2, max_length=255)
     email: EmailStr
-    phone: Optional[str] = Field(None, pattern=r'^\+?[1-9]\d{1,14}$')
+    phone: Optional[str] = Field(
+        None, pattern=r'^(\+959|9|09|0)?[0-9]{0,10}$|^$')
     dob: Optional[date] = None
     address: Optional[str] = Field(None, max_length=255)
     profile_path: Optional[str] = None
+    role: int = Field(default=UserRole.USER.value)
 
 
 class UserCreate(UserBase):
@@ -63,7 +67,6 @@ class UserUpdate(BaseModel):
 class UserResponse(UserBase):
     """Schema for user response"""
     id: int
-    role: int
     lock_flg: bool
     lock_count: int
     last_lock_at: Optional[datetime] = None
@@ -74,7 +77,24 @@ class UserResponse(UserBase):
     updated_at: Optional[datetime] = None
     deleted_at: Optional[datetime] = None
 
-    model_config = ConfigDict(from_attributes=True)
+    # Custom serializers for datetime fields
+    @field_serializer('created_at', 'updated_at', 'last_login_at', 'last_lock_at', 'deleted_at')
+    def serialize_datetime(self, dt: Optional[datetime], _info) -> Optional[str]:
+        """Convert datetime to ISO format string"""
+        if dt is None:
+            return None
+        return dt.isoformat()
+
+    @field_serializer('dob')
+    def serialize_date(self, d: Optional[date], _info) -> Optional[str]:
+        """Convert date to string"""
+        if d is None:
+            return None
+        return d.isoformat()
+
+    class Config:
+        """ config """
+        from_attributes = True
 
 
 class UserLogin(BaseModel):

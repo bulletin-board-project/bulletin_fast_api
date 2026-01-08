@@ -49,7 +49,7 @@ class UserRepository:
         self.db.add(user)
         return user
 
-    def exists_by_email_or_phone(self, email: str, phone: Optional[str]) -> bool:
+    def exists_by_email_or_phone(self, email: str, phone: Optional[str]):
         """Check if user exists by email or phone"""
         query = self.db.query(User).filter(User.email == email)
         if phone:
