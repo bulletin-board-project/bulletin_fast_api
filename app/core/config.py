@@ -43,6 +43,15 @@ class Settings(BaseSettings):
         else:
             raise ValueError(f"Invalid CORS origins format: {v}")
 
+    # Mail Service
+    SMTP_HOST: str
+    SMTP_PORT: str = 587
+    SMTP_USER: str
+    SMTP_PASSWORD: str = ""
+    EMAIL_FROM_NAME: str = "Bulletin_Board"
+    EMAIL_FROM: str
+    FRONTEND_URL: str = "http://localhost:5173"
+
     # MySQL Database
     MYSQL_HOST: str
     MYSQL_PORT: str = "3306"

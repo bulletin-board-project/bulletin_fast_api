@@ -118,3 +118,4 @@ class UserChangePassword(BaseModel):
         if 'new_password' in info.data and v != info.data['new_password']:
             raise ValueError('Passwords do not match')
         return v
+

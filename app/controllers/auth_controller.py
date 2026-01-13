@@ -3,6 +3,7 @@ from fastapi import Request
 from app.services.auth_service import AuthService
 from app.schemas.user import UserCreate, UserLogin, UserChangePassword
 from app.schemas.token import TokenRefresh
+from app.schemas.auth import ForgotPasswordRequest, ResetPasswordRequest
 
 
 class AuthController:
@@ -26,3 +27,11 @@ class AuthController:
     def change_password(self, current_user, password_data: UserChangePassword):
         """ Change user password """
         return self.service.change_password(current_user, password_data)
+
+    def forget_password(self, data: ForgotPasswordRequest):
+        """ Change user password """
+        return self.service.forget_password(data)
+
+    def reset_password(self, data: ResetPasswordRequest):
+        """ Change user password """
+        return self.service.reset_password(data)

@@ -3,15 +3,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from starlette.middleware.cors import CORSMiddleware
 from app.core.database import get_db, create_tables, test_connection
 from app.core.config import settings
 from app import models  # pylint: disable=unused-import
 
 # Import routes
-from app.core.exception import add_exception_handlers
-from app.routes import auth
+from app.core.exception_handlers import add_exception_handlers
+from app.routes import auth, users
 from app.schemas.response import StandardResponse
-from starlette.middleware.cors import CORSMiddleware
 
 
 @asynccontextmanager
@@ -53,7 +53,7 @@ add_exception_handlers(app)
 
 # Include routers
 app.include_router(auth.router)
-# app.include_router(users.router)
+app.include_router(users.router)
 
 
 @app.get("/")

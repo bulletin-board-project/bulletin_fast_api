@@ -8,6 +8,7 @@ from app.dependencies.dependencies import AuthControllerDep
 from app.models import User
 from app.schemas.response import StandardResponse
 from app.schemas.user import UserCreate, UserResponse, UserLogin, UserChangePassword
+from app.schemas.auth import ForgotPasswordRequest, ResetPasswordRequest
 from app.schemas.token import TokenRefresh
 from app.dependencies.auth import get_current_active_user
 from app.core.config import settings
@@ -76,3 +77,21 @@ async def logout():
         message="Successfully logged out",
         data=None
     )
+
+
+@router.post("/forgot-password", response_model=StandardResponse)
+async def forgot_password(
+    request: ForgotPasswordRequest,
+    controller: AuthControllerDep,
+):
+    """Change user password"""
+    return controller.forget_password(request)
+
+
+@router.post("/reset-password", response_model=StandardResponse)
+async def reset_password(
+    request: ResetPasswordRequest,
+    controller: AuthControllerDep,
+):
+    """Change user password"""
+    return controller.reset_password(request)

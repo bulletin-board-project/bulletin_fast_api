@@ -1,10 +1,11 @@
 """ Authentication service """
 
-from datetime import timedelta
+from datetime import timedelta, datetime, UTC
+from uuid import uuid4
 from fastapi import HTTPException, status, Request
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
-from app.models import User
+from app.models import User, PasswordReset
 from app.repositories.user_repository import UserRepository
 from app.core.security import (
     verify_password,
@@ -18,6 +19,8 @@ from app.core.config import settings
 from app.models import UserRole
 from app.schemas.response import StandardResponse
 from app.schemas.user import UserCreate, UserLogin, UserChangePassword, UserResponse
+from app.schemas.auth import ForgotPasswordRequest, ResetPasswordRequest
+from app.utils.email import send_reset_password_email
 
 
 class AuthService:
@@ -68,10 +71,11 @@ class AuthService:
             user_dict['created_user_id'] = current_user_id
 
         db_user = User(**user_dict)
-        user = self.user_repo.create(
+        user = self.user_repo.save(
             db_user
         )
 
+        self.db
         self.db.commit()
         self.db.refresh(user)
         # Convert to UserResponse
@@ -216,6 +220,117 @@ class AuthService:
             data=None
         )
 
+    def forget_password(self, data: ForgotPasswordRequest):
+        """ Forget user password """
+        user = self.db.query(User).filter(User.email == data.email).first()
+        if not user:
+            return StandardResponse(
+                success=True,
+                message="If your email exists, a reset link has been sent.",
+                data=None
+            )
+
+        existing = self.db.query(PasswordReset).filter(
+            PasswordReset.email == data.email).first()
+        if existing:
+            self.db.delete(existing)
+
+        # Generate Token and save DB
+        token = str(uuid4())
+
+        reset = PasswordReset(
+            email=data.email,
+            token=token,
+        )
+        self.db.add(reset)
+        self.db.commit()
+        try:
+            send_reset_password_email(data.email, token)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            print(f"Password verification error: {e}")
+            # self.db.rollback()
+            self.db.delete(reset)
+            self.db.commit()
+            return HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=StandardResponse(
+                    success=False,
+                    message="Failed to send reset email",
+                    error_code="FAIL_SEND_MAIL"
+                ).model_dump()
+            )
+
+        return StandardResponse(
+            success=True,
+            message="If your email is registered, token has been sent.",
+            data=None
+        )
+
+    def reset_password(self, data: ResetPasswordRequest):
+        """ Reset User Password """
+        reset_record = self.db.query(PasswordReset).filter(
+            PasswordReset.token == data.token
+        ).first()
+        if not reset_record:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=StandardResponse(
+                    success=False,
+                    message="Reset token not found.",
+                    error_code="NOT_FOUND_RESET_TOKEN"
+                ).model_dump(),
+            )
+
+        created_at = reset_record.created_at
+
+        # Check if created_at has timezone info
+        if created_at.tzinfo is None:
+            # If naive, assume it's UTC and add timezone
+            created_at = created_at.replace(tzinfo=UTC)
+
+        time_diff = datetime.now(UTC) - created_at
+
+        if time_diff > timedelta(hours=1):
+            self.db.delete(reset_record)
+            self.db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=StandardResponse(
+                    success=False,
+                    message="Reset token has expired.",
+                    error_code="INVALID_RESET_TOKEN"
+                ).model_dump(),
+            )
+
+        # Get user by email
+        user = self.db.query(User).filter(
+            User.email == reset_record.email).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=StandardResponse(
+                    success=False,
+                    message="User not found",
+                    error_code="USER_NOT_FOUND"
+                ).model_dump(),
+            )
+
+        # Update password
+        user.password = get_password_hash(data.password)
+        user.updated_user_id = user.id
+        self.db.commit()
+
+        # Delete Token
+        self.db.delete(reset_record)
+        self.db.commit()
+
+        return StandardResponse(
+            success=True,
+            message="Password has been reset successfully",
+            data=None
+        )
+
+    # === Helper ===
     def _generate_tokens(self, user: User, refresh=True):
         access_token_expires = timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)

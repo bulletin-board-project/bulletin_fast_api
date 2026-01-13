@@ -1,6 +1,6 @@
 """Response schemas for consistent API responses"""
 from typing import Any, Optional, Generic, TypeVar
-from datetime import datetime
+from datetime import UTC, datetime
 from pydantic import BaseModel, Field
 
 T = TypeVar("T")
@@ -11,18 +11,18 @@ class StandardResponse(BaseModel):
     success: bool = Field(...,
                           description="Whether the request was successful")
     message: str = Field(..., description="Response message")
-    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+    timestamp: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     data: Optional[Any] = None
     error_code: Optional[str] = None
 
 
 class PaginatedResponse(StandardResponse, Generic[T]):
     """Paginated response"""
-    page: int
+    current_page: int
     per_page: int
     total: int
     total_pages: int
-    data: list[T]  # Override data to be list
+    data: list[T]
 
 
 class ErrorResponse(BaseModel):

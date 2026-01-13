@@ -16,4 +16,4 @@ class ResetPasswordRequest(BaseModel):
     """
     token: str
     password: str
-    password_confirmation: str
+    confirm_password: str

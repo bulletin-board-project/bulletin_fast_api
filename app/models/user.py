@@ -1,10 +1,8 @@
 """ User Model """
-# pylint: disable=not-callable
 import enum
 from typing import Optional, TYPE_CHECKING
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from sqlalchemy import Index, String, Boolean, Integer, BigInteger, Date, DateTime
-from sqlalchemy.sql import func
 from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import BaseModel
 
@@ -78,7 +76,7 @@ class User(BaseModel):
         self.lock_count += 1
         if self.lock_count >= 5:  # Lock after 5 failed attempts
             self.lock_flg = True
-            self.last_lock_at = func.now()
+            self.last_lock_at = datetime.now(timezone.utc)
 
     def reset_lock_count(self):
         """Reset failed login attempts"""
@@ -87,5 +85,5 @@ class User(BaseModel):
 
     def record_login(self):
         """Record successful login"""
-        self.last_login_at = func.now()
+        self.last_login_at = datetime.now(timezone.utc)
         self.reset_lock_count()
