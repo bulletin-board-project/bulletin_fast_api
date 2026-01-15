@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     EMAIL_FROM: str
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # CLOUDINARY SERVICE
+    CLOUDINARY_CLOUD_NAME: str
+    CLOUDINARY_API_KEY: str
+    CLOUDINARY_API_SECRET: str
+
     # MySQL Database
     MYSQL_HOST: str
     MYSQL_PORT: str = "3306"

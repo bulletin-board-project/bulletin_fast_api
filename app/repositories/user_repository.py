@@ -1,7 +1,7 @@
 """ User repository module. """
 from datetime import UTC, datetime
 from typing import List, Optional, Tuple, cast
-from sqlalchemy import asc, desc, update
+from sqlalchemy import asc, desc, or_, update
 from sqlalchemy.orm import Session, Query
 from app.models import User
 
@@ -60,8 +60,9 @@ class UserRepository:
         """Check if user exists by email or phone"""
         query = self.db.query(User).filter(User.email == email)
         if phone:
-            query = query.filter(User.phone == phone)
-        return query.first() is not None
+            query = self.db.query(User).filter(
+                or_(User.email == email, User.phone == phone))
+        return query.first()
 
      # === Query Operations ===
 

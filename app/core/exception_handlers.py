@@ -64,20 +64,25 @@ def add_exception_handlers(app: FastAPI):
         print(f"[VALIDATION_ERROR] {request.url.path}")
         print(f"[VALIDATION_DETAILS] {exc.errors()}")
 
-        # Format validation errors
-        formatted_errors = []
-        for error in exc.errors():
-            formatted_errors.append({
-                "loc": error.get("loc", []),
-                "msg": error.get("msg", ""),
+        def parse_error(error):
+            loc = error.get("loc", ())
+            # FastAPI usually returns ("body", "fieldname") if using JSON body,
+            # but with form, it may return just ("fieldname",)
+            if loc and loc[0] != "body":
+                loc = ("body",) + loc  # force "body" prefix for consistency
+            return {
+                "field": ".".join(str(i) for i in loc),
+                "message": error.get("msg", ""),
                 "type": error.get("type", "")
-            })
+            }
+
+        errors = [parse_error(e) for e in exc.errors()]
 
         response = StandardResponse(
             success=False,
             message="Validation error",
             error_code="VALIDATION_ERROR",
-            details={"errors": formatted_errors}
+            details={"errors": errors}
         )
 
         return JSONResponse(

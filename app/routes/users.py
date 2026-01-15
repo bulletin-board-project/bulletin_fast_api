@@ -2,13 +2,13 @@
 
 from datetime import date
 from typing import List, Optional
-from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile, status
 from app.core.config import settings
 from app.dependencies.auth import get_current_active_user
 from app.dependencies.dependencies import UserControllerDep
 from app.models.user import User
 from app.schemas.response import PaginatedResponse, StandardResponse
-from app.schemas.user import UserResponse
+from app.schemas.user import UserCreate, UserResponse, UserUpdate, user_create_form, user_update_form
 
 router = APIRouter(prefix=settings.API_V1_STR + "/users", tags=["User"])
 
@@ -48,6 +48,38 @@ async def get_user_list(
         sort_by=sort_by,
         sort_order=sort_order
     )
+
+
+@router.get("/{user_id}", response_model=StandardResponse, status_code=status.HTTP_200_OK)
+async def get_user(user_id: int, controller: UserControllerDep, current_user: User = Depends(get_current_active_user),) -> StandardResponse:
+    """
+    Docstring for get_user
+    """
+    print("current user : ", current_user)
+    return await controller.get_user(user_id)
+
+
+@router.post("/create", response_model=StandardResponse, status_code=status.HTTP_201_CREATED)
+async def create(
+    controller: UserControllerDep,
+    profile_image: UploadFile = File(...),
+    user_data: UserCreate = Depends(user_create_form),
+    current_user: User = Depends(get_current_active_user),
+) -> StandardResponse:
+    """Create a new user"""
+    return await controller.create_user(user_data, profile_image, current_user)
+
+
+@router.put("/{user_id}", response_model=StandardResponse, status_code=status.HTTP_200_OK)
+async def update(
+    user_id: int,
+    controller: UserControllerDep,
+    profile_image: UploadFile | None = File(None),
+    user_data: UserUpdate = Depends(user_update_form),
+    current_user: User = Depends(get_current_active_user),
+) -> StandardResponse:
+    """Update existing user"""
+    return await controller.update_user(user_id, user_data, profile_image, current_user)
 
 
 @router.post("/delete", response_model=StandardResponse,

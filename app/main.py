@@ -1,5 +1,6 @@
 """ Main File """
 from contextlib import asynccontextmanager
+import cloudinary
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -46,6 +47,14 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+)
+
+# Configure Cloudinary
+cloudinary.config(
+    cloud_name=settings.CLOUDINARY_CLOUD_NAME,
+    api_key=settings.CLOUDINARY_API_KEY,
+    api_secret=settings.CLOUDINARY_API_SECRET,
+    secure=True  # Use HTTPS
 )
 
 # Register exception handlers

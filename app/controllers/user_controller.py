@@ -2,7 +2,10 @@
 
 from datetime import date
 from typing import List, Optional
+
+from fastapi import UploadFile
 from app.models.user import User
+from app.schemas.user import UserCreate, UserUpdate
 from app.services.user_service import UserService
 
 
@@ -31,8 +34,17 @@ class UserController:
             sort_order=sort_order
         )
 
-    def get_user(self):
+    async def get_user(self, user_id: int):
         """ Get User """
+        return await self.service.get_user(user_id)
+
+    async def create_user(self, user_data: UserCreate, profile_image: UploadFile, user: User):
+        """ create a new user """
+        return await self.service.create_user(user_data, profile_image, user)
+
+    async def update_user(self, user_id: int, user_data: UserUpdate, profile_image: UploadFile, user: User):
+        """ create a new user """
+        return await self.service.update_user(user_id, user_data, profile_image, user)
 
     def delete_users(self, user_ids: List[int], current_user: User):
         """ Delete User """

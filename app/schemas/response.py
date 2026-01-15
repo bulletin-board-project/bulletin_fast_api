@@ -14,6 +14,7 @@ class StandardResponse(BaseModel):
     timestamp: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     data: Optional[Any] = None
     error_code: Optional[str] = None
+    details: Optional[Any] = None
 
 
 class PaginatedResponse(StandardResponse, Generic[T]):
