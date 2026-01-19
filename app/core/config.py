@@ -1,10 +1,11 @@
 """
 Docstring for app.core.config
 """
+import json
 import sys
 from typing import List
 from pydantic_settings import BaseSettings
-from pydantic import AnyHttpUrl, field_validator
+from pydantic import field_validator
 
 
 class Settings(BaseSettings):
@@ -24,19 +25,37 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_HOUR: int = 1
 
     # CORS
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
+    BACKEND_CORS_ORIGINS: List[str] = [
+        "http://localhost:5173", "http://localhost:3000"]
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
-    def assemble_cors_origins(cls, v: str | List[str]) -> List[str] | str:
+    def assemble_cors_origins(cls, v: str | List[str]) -> List[str]:
         """
         Docstring for assemble_cors_origins
         """
         if isinstance(v, str) and not v.startswith("["):
             return [i.strip() for i in v.split(",")]
-        elif isinstance(v, (list, str)):
+        elif isinstance(v, str) and v.startswith("["):
+            return json.loads(v)
+        elif isinstance(v, list):
             return v
-        raise ValueError(v)
+        else:
+            raise ValueError(f"Invalid CORS origins format: {v}")
+
+    # Mail Service
+    SMTP_HOST: str
+    SMTP_PORT: str = 587
+    SMTP_USER: str
+    SMTP_PASSWORD: str = ""
+    EMAIL_FROM_NAME: str = "Bulletin_Board"
+    EMAIL_FROM: str
+    FRONTEND_URL: str = "http://localhost:5173"
+
+    # CLOUDINARY SERVICE
+    CLOUDINARY_CLOUD_NAME: str
+    CLOUDINARY_API_KEY: str
+    CLOUDINARY_API_SECRET: str
 
     # MySQL Database
     MYSQL_HOST: str

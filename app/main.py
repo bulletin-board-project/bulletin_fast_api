@@ -1,14 +1,18 @@
 """ Main File """
 from contextlib import asynccontextmanager
+import cloudinary
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from starlette.middleware.cors import CORSMiddleware
 from app.core.database import get_db, create_tables, test_connection
 from app.core.config import settings
 from app import models  # pylint: disable=unused-import
 
 # Import routes
-from app.routes import auth
+from app.core.exception_handlers import add_exception_handlers
+from app.routes import auth, users
+from app.schemas.response import StandardResponse
 
 
 @asynccontextmanager
@@ -34,9 +38,31 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Cors middleware
+print("🔧 Setting up CORS middleware")
+print(f"Allowed origins: {settings.BACKEND_CORS_ORIGINS}")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.BACKEND_CORS_ORIGINS,  # .env
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["*"],
+)
+
+# Configure Cloudinary
+cloudinary.config(
+    cloud_name=settings.CLOUDINARY_CLOUD_NAME,
+    api_key=settings.CLOUDINARY_API_KEY,
+    api_secret=settings.CLOUDINARY_API_SECRET,
+    secure=True  # Use HTTPS
+)
+
+# Register exception handlers
+add_exception_handlers(app)
+
 # Include routers
 app.include_router(auth.router)
-# app.include_router(users.router)
+app.include_router(users.router)
 
 
 @app.get("/")
@@ -44,7 +70,15 @@ def read_root():
     """
     Welcome Route
     """
-    return {"message": f"Welcome to {settings.PROJECT_NAME}"}
+    return StandardResponse(
+        success=True,
+        message=f"Welcome to {settings.PROJECT_NAME}",
+        data={
+            "project": settings.PROJECT_NAME,
+            "version": settings.VERSION,
+            "environment": settings.ENVIRONMENT
+        }
+    )
 
 
 @app.get("/health")
@@ -53,18 +87,25 @@ def health_check(db: Session = Depends(get_db)):
     try:
         # Test database query
         db.execute(text("SELECT 1"))
-        return {
-            "status": "healthy",
-            "database": "connected",
-            "project": settings.PROJECT_NAME,
-            "environment": settings.ENVIRONMENT
-        }
+        return StandardResponse(
+            success=True,
+            message="Service is healthy",
+            data={
+                "database": "connected",
+                "project": settings.PROJECT_NAME,
+                "environment": settings.ENVIRONMENT
+            }
+        )
     except Exception as e:  # pylint: disable=broad-exception-caught
-        return {
-            "status": "unhealthy",
-            "database": "disconnected",
-            "error": str(e)
-        }
+        return StandardResponse(
+            success=False,
+            message="Service is unhealthy",
+            data={
+                "status": "unhealthy",
+                "database": "disconnected",
+                "error": str(e)
+            }
+        )
 
 
 print(__name__)

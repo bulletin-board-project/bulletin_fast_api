@@ -2,28 +2,33 @@
 Enhanced authentication routes with account lock features
 """
 from fastapi import APIRouter, Depends, status, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.security import OAuth2PasswordBearer
 from app.dependencies.dependencies import AuthControllerDep
 from app.models import User
+from app.schemas.response import StandardResponse
 from app.schemas.user import UserCreate, UserResponse, UserLogin, UserChangePassword
-from app.schemas.token import Token, TokenRefresh
+from app.schemas.auth import ForgotPasswordRequest, ResetPasswordRequest
+from app.schemas.token import TokenRefresh
 from app.dependencies.auth import get_current_active_user
+from app.core.config import settings
 
-router = APIRouter(prefix="/auth", tags=["authentication"])
+router = APIRouter(prefix=settings.API_V1_STR +
+                   "/auth", tags=["authentication"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=StandardResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     request: Request,
     user_data: UserCreate,
     controller: AuthControllerDep
-) -> UserResponse:
+) -> StandardResponse:
     """Register a new user with audit trail"""
     return controller.register(request, user_data)
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=StandardResponse)
 async def login(
     login_data: UserLogin,
     controller: AuthControllerDep
@@ -32,7 +37,7 @@ async def login(
     return controller.login(login_data)
 
 
-@router.post("/refresh", response_model=Token)
+@router.post("/refresh", response_model=StandardResponse)
 async def refresh(
     refresh_data: TokenRefresh,
     controller: AuthControllerDep
@@ -41,7 +46,7 @@ async def refresh(
     return controller.refresh(refresh_data)
 
 
-@router.post("/change-password")
+@router.post("/change-password", response_model=StandardResponse)
 async def change_password(
     password_data: UserChangePassword,
     controller: AuthControllerDep,
@@ -51,15 +56,42 @@ async def change_password(
     return controller.change_password(current_user, password_data)
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=StandardResponse)
 async def get_current_user(
     current_user: User = Depends(get_current_active_user)
 ):
     """Get current user information"""
-    return current_user
+    user_response = UserResponse.model_validate(current_user)
+    return StandardResponse(
+        success=True,
+        message="User information retrieved successfully",
+        data=jsonable_encoder(user_response)
+    )
 
 
-@router.post("/logout")
+@router.post("/logout", response_model=StandardResponse)
 async def logout():
     """Logout user (client should discard tokens)"""
-    return {"message": "Successfully logged out"}
+    return StandardResponse(
+        success=True,
+        message="Successfully logged out",
+        data=None
+    )
+
+
+@router.post("/forgot-password", response_model=StandardResponse)
+async def forgot_password(
+    request: ForgotPasswordRequest,
+    controller: AuthControllerDep,
+):
+    """Change user password"""
+    return controller.forget_password(request)
+
+
+@router.post("/reset-password", response_model=StandardResponse)
+async def reset_password(
+    request: ResetPasswordRequest,
+    controller: AuthControllerDep,
+):
+    """Change user password"""
+    return controller.reset_password(request)
