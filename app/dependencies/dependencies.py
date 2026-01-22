@@ -4,10 +4,13 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from app.controllers.auth_controller import AuthController
+from app.controllers.post_controller import PostController
 from app.controllers.user_controller import UserController
 from app.core.database import get_db
+from app.repositories.post_repository import PostRepository
 from app.repositories.user_repository import UserRepository
 from app.services.auth_service import AuthService
+from app.services.post_service import PostService
 from app.services.user_service import UserService
 
 
@@ -20,7 +23,13 @@ def get_user_repository(db: DatabaseDep) -> UserRepository:
     return UserRepository(db)
 
 
+def get_post_repository(db: DatabaseDep) -> PostRepository:
+    """ Get PostRepository dependency """
+    return PostRepository(db)
+
 ## Service dependencies ##
+
+
 def get_auth_service(
     db: DatabaseDep,
     user_repo: Annotated[UserRepository, Depends(get_user_repository)]
@@ -35,6 +44,14 @@ def get_user_service(
 ) -> UserService:
     """ Get UserService dependency"""
     return UserService(user_repo, db)
+
+
+def get_post_service(
+        db: DatabaseDep,
+        user_repo: Annotated[PostRepository, Depends(get_post_repository)]
+) -> PostService:
+    """ Get PostService dependency"""
+    return PostService(user_repo, db)
 
 
 ## Controller dependencies ##
@@ -52,6 +69,14 @@ def get_user_controller(
     return UserController(service)
 
 
+def get_post_controller(
+        service: Annotated[PostService, Depends(get_post_service)]
+):
+    """Get Post Controller dependency"""
+    return PostController(service)
+
+
 ## Type aliases for dependency injection ##
 AuthControllerDep = Annotated[AuthController, Depends(get_auth_controller)]
 UserControllerDep = Annotated[UserController, Depends(get_user_controller)]
+PostControllerDep = Annotated[PostController, Depends(get_post_controller)]

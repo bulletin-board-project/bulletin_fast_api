@@ -1,9 +1,9 @@
 """ User Model """
 import enum
-from typing import Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 from datetime import datetime, date, timezone
 from sqlalchemy import Index, String, Boolean, Integer, BigInteger, Date, DateTime
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column,relationship
 from app.models.base import BaseModel
 
 
@@ -22,7 +22,7 @@ class User(BaseModel):
     """ User Model """
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     email: Mapped[str] = mapped_column(
         String(255), unique=True, nullable=False, index=True)
@@ -51,6 +51,26 @@ class User(BaseModel):
         BigInteger, nullable=True)
     deleted_user_id: Mapped[Optional[int]] = mapped_column(
         BigInteger, nullable=True)
+
+    # Relationships
+    created_posts: Mapped[List["Post"]] = relationship(
+        "Post",
+        foreign_keys="Post.create_user_id",
+        back_populates="creator",
+        lazy="dynamic" 
+    )
+    updated_posts: Mapped[List["Post"]] = relationship(
+        "Post",
+        foreign_keys="Post.updated_user_id",
+        back_populates="updater",
+        lazy="dynamic"
+    )
+    deleted_posts: Mapped[List["Post"]] = relationship(
+        "Post",
+        foreign_keys="Post.deleted_user_id",
+        back_populates="deleter",
+        lazy="dynamic"
+    )
 
     __table_args__ = (
         # Composite indexes

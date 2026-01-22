@@ -51,7 +51,8 @@ async def get_user_list(
 
 
 @router.get("/{user_id}", response_model=StandardResponse, status_code=status.HTTP_200_OK)
-async def get_user(user_id: int, controller: UserControllerDep, current_user: User = Depends(get_current_active_user),) -> StandardResponse:
+async def get_user(user_id: int, controller: UserControllerDep, current_user: User =
+                   Depends(get_current_active_user),) -> StandardResponse:
     """
     Docstring for get_user
     """

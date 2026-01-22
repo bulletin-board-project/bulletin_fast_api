@@ -229,7 +229,8 @@ class UserService:
 
         try:
             ## Profile Path ##
-            profile_url = original_user.profile_path
+            old_profile_url = original_user.profile_path
+            profile_url = old_profile_url
             new_profile_url = None
             if profile_image:
                 # new image upload
@@ -256,8 +257,8 @@ class UserService:
             self.db.refresh(original_user)
 
             # commit success → delete old image
-            if profile_image and original_user.profile_path:
-                await delete_profile_image(original_user.profile_path)
+            if new_profile_url and old_profile_url:
+                await delete_profile_image(old_profile_url)
 
             # Convert to UserResponse
             user_response = UserResponse.model_validate(original_user)

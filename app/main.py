@@ -11,7 +11,7 @@ from app import models  # pylint: disable=unused-import
 
 # Import routes
 from app.core.exception_handlers import add_exception_handlers
-from app.routes import auth, users
+from app.routes import auth, users, posts
 from app.schemas.response import StandardResponse
 
 
@@ -47,6 +47,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"]
 )
 
 # Configure Cloudinary
@@ -63,6 +64,7 @@ add_exception_handlers(app)
 # Include routers
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(posts.router)
 
 
 @app.get("/")
