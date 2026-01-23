@@ -1,7 +1,7 @@
 """
 Enhanced authentication routes with account lock features
 """
-from fastapi import APIRouter, Depends, status, Request
+from fastapi import APIRouter, Depends, Response, status, Request, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.security import OAuth2PasswordBearer
 from app.dependencies.dependencies import AuthControllerDep
@@ -31,18 +31,26 @@ async def register(
 @router.post("/login", response_model=StandardResponse)
 async def login(
     login_data: UserLogin,
-    controller: AuthControllerDep
+    controller: AuthControllerDep,
+    response: Response
 ):
     """Login user with account lock protection"""
-    return controller.login(login_data)
+    return controller.login(login_data, response)
 
 
 @router.post("/refresh", response_model=StandardResponse)
 async def refresh(
-    refresh_data: TokenRefresh,
+    request: Request,
     controller: AuthControllerDep
 ):
     """Refresh access token using refresh token"""
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token not found"
+        )
+    refresh_data = TokenRefresh(refresh_token=refresh_token)
     return controller.refresh(refresh_data)
 
 
@@ -70,8 +78,15 @@ async def get_current_user(
 
 
 @router.post("/logout", response_model=StandardResponse)
-async def logout():
+async def logout(response: Response):
     """Logout user (client should discard tokens)"""
+
+    response.delete_cookie(
+        key="refresh_token",
+        httponly=True,
+        secure=settings.ENVIRONMENT == 'production',
+        samesite="strict",
+    )
     return StandardResponse(
         success=True,
         message="Successfully logged out",

@@ -4,9 +4,9 @@ from datetime import date
 from typing import List, Optional
 from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile, status
 from app.core.config import settings
-from app.dependencies.auth import get_current_active_user
+from app.dependencies.auth import get_current_active_user, get_admin_user
 from app.dependencies.dependencies import UserControllerDep
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.response import PaginatedResponse, StandardResponse
 from app.schemas.user import UserCreate, UserResponse, UserUpdate, user_create_form, user_update_form
 
@@ -33,7 +33,7 @@ async def get_user_list(
         "created_at", description="Search by email (partial match)"),
     sort_order: Optional[str] = Query(
         "desc", description="Search by email (partial match)"),
-    current_user: User = Depends(get_current_active_user)
+    current_user: User = Depends(get_admin_user)
 ):
     """ Get User List"""
     print("current user : ", current_user)
@@ -56,6 +56,12 @@ async def get_user(user_id: int, controller: UserControllerDep, current_user: Us
     """
     Docstring for get_user
     """
+    if (user_id != current_user.id and current_user.role != UserRole.ADMIN.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Requires {UserRole.ADMIN.name} role or higher"
+        )
+
     print("current user : ", current_user)
     return await controller.get_user(user_id)
 
@@ -65,7 +71,7 @@ async def create(
     controller: UserControllerDep,
     profile_image: UploadFile = File(...),
     user_data: UserCreate = Depends(user_create_form),
-    current_user: User = Depends(get_current_active_user),
+    current_user: User = Depends(get_admin_user),
 ) -> StandardResponse:
     """Create a new user"""
     return await controller.create_user(user_data, profile_image, current_user)
@@ -80,6 +86,12 @@ async def update(
     current_user: User = Depends(get_current_active_user),
 ) -> StandardResponse:
     """Update existing user"""
+    if (user_id != current_user.id and current_user.role != UserRole.ADMIN.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Requires {UserRole.ADMIN.name} role or higher"
+        )
+
     return await controller.update_user(user_id, user_data, profile_image, current_user)
 
 
@@ -87,7 +99,7 @@ async def update(
              status_code=status.HTTP_200_OK)
 async def delete_users(
         controller: UserControllerDep,
-        current_user: User = Depends(get_current_active_user),
+        current_user: User = Depends(get_admin_user),
         user_ids: List[int] = Body(
         ...,
         description="List of user IDs to unlock",
@@ -113,7 +125,7 @@ async def delete_users(
              status_code=status.HTTP_200_OK)
 async def unlock_users(
         controller: UserControllerDep,
-        current_user: User = Depends(get_current_active_user),
+        current_user: User = Depends(get_admin_user),
         user_ids: List[int] = Body(
         ...,
         description="List of user IDs to unlock",

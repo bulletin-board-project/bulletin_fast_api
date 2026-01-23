@@ -1,5 +1,5 @@
 """" Authentication controller """
-from fastapi import Request
+from fastapi import Request, Response
 from app.services.auth_service import AuthService
 from app.schemas.user import UserCreate, UserLogin, UserChangePassword
 from app.schemas.token import TokenRefresh
@@ -16,9 +16,9 @@ class AuthController:
         """ register a new user """
         return self.service.register_user(request, user_data)
 
-    def login(self, login_data: UserLogin):
+    def login(self, login_data: UserLogin, response: Response):
         """ Login user """
-        return self.service.login(login_data)
+        return self.service.login(login_data, response)
 
     def refresh(self, refresh_data: TokenRefresh):
         """ Refresh access token """

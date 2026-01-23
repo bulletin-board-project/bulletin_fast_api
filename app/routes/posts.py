@@ -35,10 +35,8 @@ async def get_post_list(
         "created_at", description="Search by email (partial match)"),
     sort_order: Optional[str] = Query(
         "desc", description="Search by email (partial match)"),
-    current_user: User = Depends(get_current_active_user)
 ):
     """ Get Post List"""
-    print("current user : ", current_user)
     return controller.get_post_list(
         page=page,
         per_page=per_page,

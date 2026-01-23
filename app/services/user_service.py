@@ -188,7 +188,7 @@ class UserService:
             raise e
 
     async def update_user(self, user_id: int, update_data: UserUpdate, profile_image: UploadFile, current_user: User):
-        """ Register a new user """
+        """ Update user """
 
         print('uploadFile ==>', profile_image)
         print('user==>', current_user)
@@ -265,7 +265,7 @@ class UserService:
 
             return StandardResponse(
                 success=True,
-                message="User registered successfully",
+                message="User updated successfully",
                 data=jsonable_encoder(user_response)
             )
         except Exception as e:
@@ -352,14 +352,6 @@ class UserService:
                 error_code="USER_NOT_FOUND",
                 status_code=status.HTTP_404_NOT_FOUND
             )
-            # raise HTTPException(
-            #     status_code=status.HTTP_404_NOT_FOUND,
-            #     detail=StandardResponse(
-            #         success=False,
-            #         message=f"Users not found: {missing_ids}",
-            #         error_code="USER_NOT_FOUND"
-            #     ).model_dump()
-            # )
 
         # Check if users are already unlocked
         locked_users = [u for u in existing_users if u.lock_flg]
@@ -369,14 +361,6 @@ class UserService:
                 error_code="USER_ALREADY_UNLOCK",
                 status_code=status.HTTP_400_BAD_REQUEST
             )
-            # raise HTTPException(
-            #     status_code=status.HTTP_400_BAD_REQUEST,
-            #     detail=StandardResponse(
-            #         success=False,
-            #         message=" users are already unlocked",
-            #         error_code="USER_ALREADY_UNLOCK"
-            #     ).model_dump()
-            # )
 
         lock_count_reset_value = 0
         last_lock_at_value = None
@@ -420,11 +404,4 @@ class UserService:
                 error_code="INTERNAL_SERVER_ERROR",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             ) from e
-            # raise HTTPException(
-            #     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            #     detail=StandardResponse(
-            #         success=False,
-            #         message=f"Failed to unlock users: {str(e)}",
-            #         error_code="INTERNAL_SERVER_ERROR"
-            #     ).model_dump()
-            # ) from e
+

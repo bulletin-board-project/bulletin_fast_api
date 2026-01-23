@@ -2,7 +2,7 @@
 
 from datetime import timedelta, datetime, UTC
 from uuid import uuid4
-from fastapi import HTTPException, status, Request
+from fastapi import HTTPException, Response, status, Request
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from app.models import User, PasswordReset
@@ -87,7 +87,7 @@ class AuthService:
             data=jsonable_encoder(user_response)
         )
 
-    def login(self, login_data: UserLogin):
+    def login(self, login_data: UserLogin, response: Response):
         """ User login """
         user = self.user_repo.get_by_email(login_data.email)
 
@@ -145,10 +145,20 @@ class AuthService:
         self.db.commit()
 
         tokens = self._generate_tokens(user)
+
+        response.set_cookie(
+            key="refresh_token",
+            value=tokens["refresh_token"],
+            httponly=True,
+            secure=settings.ENVIRONMENT == 'production',          # HTTPS only
+            samesite="strict",
+            max_age=settings.REFRESH_TOKEN_EXPIRE_HOUR * 3600
+        )
+
         return StandardResponse(
             success=True,
             message="Login successful",
-            data=tokens
+            data={"access_token": tokens["access_token"]}
         )
 
     def refresh_token(self, refresh_data):
