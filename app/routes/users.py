@@ -8,7 +8,7 @@ from app.dependencies.auth import get_current_active_user, get_admin_user
 from app.dependencies.dependencies import UserControllerDep
 from app.models.user import User, UserRole
 from app.schemas.response import PaginatedResponse, StandardResponse
-from app.schemas.user import UserCreate, UserResponse, UserUpdate, user_create_form, user_update_form
+from app.schemas.user import UserCreate, UserResponse, UserUpdate, user_create_form, user_update_form # pylint: disable=line-too-long
 
 router = APIRouter(prefix=settings.API_V1_STR + "/users", tags=["User"])
 
@@ -91,7 +91,7 @@ async def update(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Requires {UserRole.ADMIN.name} role or higher"
         )
-
+    print("delete_profile_image => ", user_data.delete_profile_image)
     return await controller.update_user(user_id, user_data, profile_image, current_user)
 
 

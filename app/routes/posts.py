@@ -1,8 +1,8 @@
-""" """
+""" Post Routes """
 
 from datetime import date
 from typing import List, Optional
-from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile, status as http_status
+from fastapi import APIRouter, Body, Depends, File, HTTPException, Query, UploadFile, status as http_status # pylint: disable=line-too-long
 from fastapi.responses import StreamingResponse
 from app.core.config import settings
 from app.dependencies.auth import get_current_active_user

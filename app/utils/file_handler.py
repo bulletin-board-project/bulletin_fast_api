@@ -4,7 +4,6 @@ from typing import List, Dict, Any, Optional
 import io
 from fastapi import HTTPException, UploadFile, status
 import pandas as pd
-import traceback
 
 
 class FileHandler:
@@ -16,7 +15,9 @@ class FileHandler:
     CHUNK_SIZE = 1000  # Rows per chunk
 
     @staticmethod
-    async def read_file(file: UploadFile, required_columns: Optional[List[str]] = None, chunk_size: int = 100):
+    async def read_file(
+        file: UploadFile, required_columns: Optional[List[str]] = None, chunk_size: int = 100,
+    ):
         """Read CSV file and return a list of dictionaries"""
         print('FILE NAME : ', file.filename)
         print('file type : ', file.content_type)
@@ -136,7 +137,6 @@ class FileHandler:
 
         except Exception as e:
             print(f"ERROR in write_csv: {str(e)}")
-            print(traceback.format_exc())
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Error generating CSV: {str(e)}"

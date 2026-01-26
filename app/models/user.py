@@ -1,16 +1,15 @@
 """ User Model """
+from __future__ import annotations  # Forward references
 import enum
 from typing import List, Optional, TYPE_CHECKING
 from datetime import datetime, date, timezone
 from sqlalchemy import Index, String, Boolean, Integer, BigInteger, Date, DateTime
-from sqlalchemy.orm import Mapped, mapped_column,relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import BaseModel
 
 
 if TYPE_CHECKING:
-    # For type hints only
-    pass
-
+    from app.models.post import Post  # only for type checking
 
 class UserRole(enum.Enum):
     """User roles enum"""
@@ -57,7 +56,7 @@ class User(BaseModel):
         "Post",
         foreign_keys="Post.create_user_id",
         back_populates="creator",
-        lazy="dynamic" 
+        lazy="dynamic"
     )
     updated_posts: Mapped[List["Post"]] = relationship(
         "Post",

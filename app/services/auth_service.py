@@ -75,7 +75,6 @@ class AuthService:
             db_user
         )
 
-        self.db
         self.db.commit()
         self.db.refresh(user)
         # Convert to UserResponse

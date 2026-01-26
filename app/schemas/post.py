@@ -1,7 +1,7 @@
 """Post Pydantic schemas"""
 from datetime import date, datetime
 from typing import List, Optional
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator, validator
+from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 
 from app.models.post import Status
 

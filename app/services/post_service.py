@@ -6,6 +6,7 @@ from fastapi import HTTPException, UploadFile, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from app.models.post import Post
 from app.models.user import User
 from app.repositories.post_repository import PostRepository
@@ -136,32 +137,28 @@ class PostService:
                 }
             )
 
-        try:
+        # Create new psot
+        post_dict = post_data.model_dump(exclude_none=True)
+        # Add additional fields
+        post_dict.update({
+            'create_user_id': current_user.id
+        })
 
-            # Create new psot
-            post_dict = post_data.model_dump(exclude_none=True)
-            # Add additional fields
-            post_dict.update({
-                'create_user_id': current_user.id
-            })
+        db_post = Post(**post_dict)
+        post = self.post_repo.save(
+            db_post
+        )
 
-            db_post = Post(**post_dict)
-            post = self.post_repo.save(
-                db_post
-            )
+        self.db.commit()
+        self.db.refresh(post)
+        # Convert to UserResponse
+        post_response = PostResponse.model_validate(post)
 
-            self.db.commit()
-            self.db.refresh(post)
-            # Convert to UserResponse
-            post_response = PostResponse.model_validate(post)
-
-            return StandardResponse(
-                success=True,
-                message="Post created successfully",
-                data=jsonable_encoder(post_response)
-            )
-        except Exception as e:
-            raise e
+        return StandardResponse(
+            success=True,
+            message="Post created successfully",
+            data=jsonable_encoder(post_response)
+        )
 
     async def update_post(self, post_id: int, update_data: PostUpdate, current_user: User):
         """ Update Post """
@@ -201,28 +198,24 @@ class PostService:
                     }
                 )
 
-        try:
+        post_dict = update_data.model_dump(exclude_none=True)
+        # Add additional fields
+        post_dict["updated_user_id"] = current_user.id
 
-            post_dict = update_data.model_dump(exclude_none=True)
-            # Add additional fields
-            post_dict["updated_user_id"] = current_user.id
+        for k, v in post_dict.items():
+            setattr(original_post, k, v)
 
-            for k, v in post_dict.items():
-                setattr(original_post, k, v)
+        self.db.commit()
+        self.db.refresh(original_post)
 
-            self.db.commit()
-            self.db.refresh(original_post)
+        # Convert to PostResponse
+        post_response = PostResponse.model_validate(original_post)
 
-            # Convert to PostResponse
-            post_response = PostResponse.model_validate(original_post)
-
-            return StandardResponse(
-                success=True,
-                message="Post created successfully",
-                data=jsonable_encoder(post_response)
-            )
-        except Exception as e:
-            raise e
+        return StandardResponse(
+            success=True,
+            message="Post created successfully",
+            data=jsonable_encoder(post_response)
+        )
 
     def delete_posts(self, post_ids: List[int], current_user: User) -> StandardResponse:
         """Delete Post"""
@@ -282,7 +275,7 @@ class PostService:
                 }
             )
 
-        except Exception as e:
+        except SQLAlchemyError as e:
             self.db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -339,18 +332,12 @@ class PostService:
                             detail="Status is required"
                         )
 
-                    try:
-                        post_status = int(status_str)
-                        if post_status not in [0, 1]:
-                            raise HTTPException(
-                                status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="Status must be 0 or 1"
-                            )
-                    except Exception as e:
+                    post_status = int(status_str)
+                    if post_status not in [0, 1]:
                         raise HTTPException(
                             status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Status must be 0 or 1"
-                        ) from e
+                        )
 
                     # Check if title already exists
                     lower_title = title.lower()
@@ -376,16 +363,16 @@ class PostService:
                     results["errors"].append(
                         f"Row {row_index}: {e.detail}"
                     )
-                except Exception as e:
+                except (ValueError, TypeError) as e:
                     results["errors"].append(
-                        f"Row {row_index}: Unexpected error - {str(e)}"
+                        f"Row {row_index}: Data error - {str(e)}"
                     )
             # Commit per chunk
             if posts:
                 try:
                     self.db.bulk_save_objects(posts)
                     self.db.commit()
-                except Exception as e:
+                except SQLAlchemyError as e:
                     self.db.rollback()
                     results["errors"].append(
                         f"Chunk failed near row {row_index}: {str(e)}"
@@ -438,13 +425,14 @@ class PostService:
             }
 
             # Get data from repository
-            posts, total_count = self.post_repo.find_posts(
+            posts,total_count  = self.post_repo.find_posts(
                 offset=offset,
                 limit=export_request.per_page,
                 sort_by=export_request.sort_by,
                 sort_order=export_request.sort_order,
                 **filters
             )
+            print(f"DEBUG: Found {total_count} total posts")
             print(f"DEBUG: Found {len(posts) if posts else 0} posts")
 
         if not posts:
@@ -452,9 +440,6 @@ class PostService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="No posts found matching the criteria"
             )
-
-        print("DEBUG: posts type =", type(posts))
-        print("DEBUG: posts =", posts)
 
         if not posts:
             raise HTTPException(
@@ -475,7 +460,6 @@ class PostService:
         ]
 
         data = [p.model_dump() for p in post_responses]
-        print("DEBUG: data =", data)
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"posts_export_{timestamp}.csv"

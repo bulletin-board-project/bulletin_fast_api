@@ -2,10 +2,14 @@
 
 from datetime import datetime, timezone
 import enum
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import BigInteger, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import BigInteger, ForeignKey, Index, Integer, String
 from app.models.base import BaseModel
+
+# Only for type checking (avoids circular import at runtime)
+if TYPE_CHECKING:
+    from app.models.user import User
 
 
 class Status(enum.Enum):
@@ -60,7 +64,7 @@ class Post(BaseModel):
     )
 
     def __repr__(self) -> str:
-        return f"<User(id={self.id}, title='{self.title}', description='{self.description}', status={self.status})>"
+        return f"<User(id={self.id}, title='{self.title}', description='{self.description}', status={self.status})>"  # pylint: disable=line-too-long
 
     @property
     def is_active(self) -> bool:
@@ -77,3 +81,4 @@ class Post(BaseModel):
         self.deleted_at = datetime.now(timezone.utc)
         self.deleted_user_id = deleted_by_user_id
         self.status = Status.INACTIVE.value
+    

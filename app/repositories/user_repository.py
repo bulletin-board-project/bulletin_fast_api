@@ -112,7 +112,9 @@ class UserRepository:
 
     # === Batch Operations ===
 
-    def bulk_delete_users(self, user_ids: List[int], deleted_at: datetime, current_user: User) -> int:
+    def bulk_delete_users(
+        self, user_ids: List[int], deleted_at: datetime, current_user: User,
+    ) -> int:
         """Delete multiple users"""
         update_data = {
             "deleted_at": deleted_at,

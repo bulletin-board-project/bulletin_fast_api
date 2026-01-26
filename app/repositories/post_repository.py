@@ -100,7 +100,9 @@ class PostRepository:
 
       # === Batch Operations ===
 
-    def bulk_delete_posts(self, post_ids: List[int], deleted_at: datetime, current_user: User) -> int:
+    def bulk_delete_posts(
+        self, post_ids: List[int], deleted_at: datetime, current_user: User,
+    ) -> int:
         """Delete multiple users"""
         update_data = {
             "deleted_at": deleted_at,

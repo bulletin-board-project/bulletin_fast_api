@@ -94,6 +94,11 @@ class UserUpdate(BaseModel):
     profile_path: Optional[str] = None
     role: Optional[int] = Field(None, ge=0, le=1)
     password: Optional[str] = Field(None, min_length=8, max_length=72)
+    delete_profile_image: Optional[str] = Field(default="false")
+
+    class Config:
+        """ config """
+        from_attributes = True
 
     @field_validator('password')
     @classmethod
@@ -122,6 +127,7 @@ def user_update_form(
     role:  Optional[int] = Form(None),
     profile_path: Optional[str] = Form(None),
     password: Optional[str] = Form(None),
+    delete_profile_image: Optional[str] = Form(None)
 ) -> UserUpdate:
     """
     User_update_form For Form
@@ -136,6 +142,7 @@ def user_update_form(
             role=role,
             profile_path=profile_path,
             password=password,
+            delete_profile_image=delete_profile_image
         )
     except ValidationError as e:
         raise RequestValidationError(e.errors()) from e

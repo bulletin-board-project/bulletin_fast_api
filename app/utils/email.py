@@ -15,7 +15,6 @@ def send_reset_password_email(
     email_to: str,
     token: str,
     subject: str = "Password Reset Request",
-    # optional: HTML template သုံးချင်ရင်
     template_name: str = "reset_password.html"
 ):
     """

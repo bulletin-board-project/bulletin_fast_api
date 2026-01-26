@@ -42,7 +42,9 @@ class UserController:
         """ create a new user """
         return await self.service.create_user(user_data, profile_image, user)
 
-    async def update_user(self, user_id: int, user_data: UserUpdate, profile_image: UploadFile, user: User):
+    async def update_user(
+        self, user_id: int, user_data: UserUpdate, profile_image: UploadFile, user: User,
+    ):
         """ create a new user """
         return await self.service.update_user(user_id, user_data, profile_image, user)
 

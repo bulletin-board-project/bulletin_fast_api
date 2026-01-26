@@ -120,7 +120,9 @@ class UserService:
             data=jsonable_encoder(user_response)
         )
 
-    async def create_user(self, user_data: UserCreate, profile_image: UploadFile, current_user: User):
+    async def create_user(
+        self, user_data: UserCreate, profile_image: UploadFile, current_user: User,
+    ):
         """ Register a new user """
 
         print('uploadFile ==>', profile_image)
@@ -187,7 +189,9 @@ class UserService:
                 await delete_profile_image(profile_url)
             raise e
 
-    async def update_user(self, user_id: int, update_data: UserUpdate, profile_image: UploadFile, current_user: User):
+    async def update_user(
+        self, user_id: int, update_data: UserUpdate, profile_image: UploadFile, current_user: User,
+    ):
         """ Update user """
 
         print('uploadFile ==>', profile_image)
@@ -232,6 +236,15 @@ class UserService:
             old_profile_url = original_user.profile_path
             profile_url = old_profile_url
             new_profile_url = None
+
+            # Case 1: Delete existing profile image
+            print('update_data.delete_profile_image ==>',
+                  update_data.delete_profile_image)
+            if update_data.delete_profile_image == "true" and old_profile_url:
+                await delete_profile_image(old_profile_url)
+                profile_url = None
+
+            # Case 2: Upload new image (overrides delete if both are present)
             if profile_image:
                 # new image upload
                 print(f"🔼 Uploading image: {profile_image.filename}")
@@ -256,7 +269,7 @@ class UserService:
             self.db.commit()
             self.db.refresh(original_user)
 
-            # commit success → delete old image
+            # commit success ( delete old image )
             if new_profile_url and old_profile_url:
                 await delete_profile_image(old_profile_url)
 
@@ -404,4 +417,3 @@ class UserService:
                 error_code="INTERNAL_SERVER_ERROR",
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
             ) from e
-
