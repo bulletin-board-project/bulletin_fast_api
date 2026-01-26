@@ -7,7 +7,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from app.core.exceptions import AppException
 from app.core.security import get_password_hash
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.repositories.user_repository import UserRepository
 from app.schemas.response import PaginatedResponse, StandardResponse
 from app.schemas.user import UserCreate, UserResponse, UserUpdate
@@ -230,6 +230,16 @@ class UserService:
                         "error_code": "PHONE_EXISTS"
                     }
                 )
+        
+        if current_user.id == user_id and update_data.role != current_user.role:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "success": False,
+                    "message": "You cannot change your role",
+                    "error_code": "ROLE_CHANGE_NOT_ALLOWED"
+                }
+            )
 
         try:
             ## Profile Path ##
@@ -360,19 +370,25 @@ class UserService:
         existing_users = self.user_repo.find_by_ids(user_ids)
         if len(existing_users) != len(user_ids):
             missing_ids = set(user_ids) - {u.id for u in existing_users}
-            raise AppException(
-                message=f"Users not found: {missing_ids}",
-                error_code="USER_NOT_FOUND",
-                status_code=status.HTTP_404_NOT_FOUND
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=StandardResponse(
+                    success=False,
+                    message=f"Users not found: {missing_ids}",
+                    error_code="USER_NOT_FOUND"
+                ).model_dump()
             )
 
         # Check if users are already unlocked
         locked_users = [u for u in existing_users if u.lock_flg]
         if not locked_users:
-            raise AppException(
-                message="Users are already unlocked",
-                error_code="USER_ALREADY_UNLOCK",
-                status_code=status.HTTP_400_BAD_REQUEST
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=StandardResponse(
+                    success=False,
+                    message="Users are already unlocked",
+                    error_code="USER_ALREADY_UNLOCK"
+                ).model_dump()
             )
 
         lock_count_reset_value = 0
@@ -411,9 +427,12 @@ class UserService:
                 }
             )
         except Exception as e:
-            self.db.rollback()
-            raise AppException(
-                message=f"Failed to unlock users: {str(e)}",
-                error_code="INTERNAL_SERVER_ERROR",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
-            ) from e
+            self.db.rollback()    
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=StandardResponse(
+                    success=False,
+                    message=f"Failed to unlock users: {str(e)}",
+                    error_code="INTERNAL_SERVER_ERROR"
+                ).model_dump()
+            )
