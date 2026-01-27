@@ -1,5 +1,5 @@
 """ Post Service """
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 import math
 from typing import List, Optional
 from fastapi import HTTPException, UploadFile, status
@@ -248,13 +248,13 @@ class PostService:
             # Perform soft delete
             deleted_count = self.post_repo.bulk_delete_posts(
                 post_ids=post_ids,
-                deleted_at=datetime.now(UTC),
+                deleted_at=datetime.now(),
                 current_user=current_user
             )
 
             # Update other audit fields
             audit_fields = {
-                'updated_at': datetime.now(UTC),
+                'updated_at': datetime.now(),
                 'updated_user_id': current_user.id
             }
             audit_update_count = self.post_repo.bulk_update_general(

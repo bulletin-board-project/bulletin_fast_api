@@ -1,13 +1,15 @@
 """ Authentication service """
 
-from datetime import timedelta, datetime, UTC
-from uuid import uuid4
+from datetime import timedelta, datetime
 from fastapi import HTTPException, Response, status, Request
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
-from app.models import User, PasswordReset
+from app.models import User
+from app.repositories.password_reset_repository import PasswordResetRepository
 from app.repositories.user_repository import UserRepository
 from app.core.security import (
+    generate_otp,
+    hash_otp_with_salt,
     verify_password,
     get_password_hash,
     create_access_token,
@@ -26,8 +28,9 @@ from app.utils.email import send_reset_password_email
 class AuthService:
     """ Authentication service """
 
-    def __init__(self, repo: UserRepository, db: Session):
-        self.user_repo = repo
+    def __init__(self, user_repo: UserRepository, password_reset_repo: PasswordResetRepository, db: Session):
+        self.user_repo = user_repo
+        self.password_reset_repo = password_reset_repo
         self.db = db
 
     def register_user(self, request: Request, user_data: UserCreate):
@@ -231,7 +234,7 @@ class AuthService:
 
     def forget_password(self, data: ForgotPasswordRequest):
         """ Forget user password """
-        user = self.db.query(User).filter(User.email == data.email).first()
+        user = self.user_repo.get_by_email(data.email)
         if not user:
             return StandardResponse(
                 success=True,
@@ -239,20 +242,22 @@ class AuthService:
                 data=None
             )
 
-        existing = self.db.query(PasswordReset).filter(
-            PasswordReset.email == data.email).first()
-        if existing:
-            self.db.delete(existing)
+        # existing = self.db.query(PasswordReset).filter(
+        #     PasswordReset.email == data.email).first()
+        # if existing:
+        #     self.db.delete(existing)
+
+        self.password_reset_repo.soft_delete_by_email(data.email)
 
         # Generate Token and save DB
-        token = str(uuid4())
+        token = generate_otp()
+        hashed_token = hash_otp_with_salt(token)
 
-        reset = PasswordReset(
+        reset = self.password_reset_repo.create(
             email=data.email,
-            token=token,
+            token=hashed_token
         )
-        self.db.add(reset)
-        self.db.commit()
+
         try:
             send_reset_password_email(data.email, token)
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -277,27 +282,32 @@ class AuthService:
 
     def reset_password(self, data: ResetPasswordRequest):
         """ Reset User Password """
-        reset_record = self.db.query(PasswordReset).filter(
-            PasswordReset.token == data.token
-        ).first()
+        if (len(data.token) != 8):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=StandardResponse(
+                    success=False,
+                    message="Invalid reset token",
+                    error_code="INVALID_RESET_TOKEN"
+                ).model_dump(),
+            )
+
+        print(f"📧 data.token: {data.token}")
+        hash_token = hash_otp_with_salt(data.token)
+        reset_record = self.password_reset_repo.get_by_token_hash(hash_token)
         if not reset_record:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=StandardResponse(
                     success=False,
-                    message="Reset token not found.",
-                    error_code="NOT_FOUND_RESET_TOKEN"
+                    message="Invalid reset token",
+                    error_code="INVALID_RESET_TOKEN"
                 ).model_dump(),
             )
 
         created_at = reset_record.created_at
 
-        # Check if created_at has timezone info
-        if created_at.tzinfo is None:
-            # If naive, assume it's UTC and add timezone
-            created_at = created_at.replace(tzinfo=UTC)
-
-        time_diff = datetime.now(UTC) - created_at
+        time_diff = datetime.now() - created_at
 
         if time_diff > timedelta(hours=1):
             self.db.delete(reset_record)
@@ -312,8 +322,7 @@ class AuthService:
             )
 
         # Get user by email
-        user = self.db.query(User).filter(
-            User.email == reset_record.email).first()
+        user = self.user_repo.get_by_email(reset_record.email)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -330,8 +339,8 @@ class AuthService:
         self.db.commit()
 
         # Delete Token
-        self.db.delete(reset_record)
-        self.db.commit()
+        # one-time use
+        self.password_reset_repo.soft_delete(reset_record)
 
         return StandardResponse(
             success=True,

@@ -1,7 +1,7 @@
 """Post Repository Module"""
 
 
-from datetime import UTC, datetime
+from datetime import  datetime
 from typing import List, Optional, Tuple, cast
 from sqlalchemy import asc, desc, select, update
 from sqlalchemy.orm import Session, Query
@@ -43,7 +43,7 @@ class PostRepository:
 
     def delete(self, post: Post) -> None:
         """Soft delete post"""
-        post.deleted_at = datetime.now(UTC)
+        post.deleted_at = datetime.now()
         self.db.add(post)
 
     def get_all_titles(self):

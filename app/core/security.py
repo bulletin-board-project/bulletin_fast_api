@@ -2,6 +2,9 @@
 Security utilities: JWT tokens, password hashing
 """
 from datetime import datetime, timedelta
+import hashlib
+import os
+import secrets
 from typing import Optional, Tuple
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -30,15 +33,15 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode = data.copy()
 
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(
+        expire = datetime.now() + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
 
     to_encode.update({
         "exp": expire,
-        "iat": datetime.utcnow(),
+        "iat": datetime.now(),
         "type": "access"
     })
     encoded_jwt = jwt.encode(
@@ -52,13 +55,13 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 def create_refresh_token(data: dict) -> str:
     """Create refresh token"""
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(
+    expire = datetime.now() + timedelta(
         hours=settings.REFRESH_TOKEN_EXPIRE_HOUR
     )
 
     to_encode.update({
         "exp": expire,
-        "iat": datetime.utcnow(),
+        "iat": datetime.now(),
         "type": "refresh"
     })
 
@@ -93,8 +96,8 @@ def check_account_lock(user) -> Tuple[bool, Optional[str]]:
         if lock_time:
             # Auto-unlock after 30 minutes
             unlock_time = lock_time + timedelta(minutes=30)
-            if datetime.utcnow() < unlock_time:
-                remaining = unlock_time - datetime.utcnow()
+            if datetime.now() < unlock_time:
+                remaining = unlock_time - datetime.now()
                 minutes = int(remaining.total_seconds() // 60)
                 return True, f"Account locked. Try again in {minutes} minutes."
             else:
@@ -103,3 +106,27 @@ def check_account_lock(user) -> Tuple[bool, Optional[str]]:
                 return False, None
         return True, "Account is locked. Contact administrator."
     return False, None
+
+
+def generate_otp(length: int = 8) -> str:
+    """ Generate OTP """
+    return ''.join(str(secrets.randbelow(10)) for _ in range(length))
+
+
+def hash_otp_with_salt(otp: str) -> tuple[str, str]:
+    """Salt and hash OTP"""
+    salt = settings.OTP_SALT
+    return hashlib.sha256(f"{salt}:{otp}".encode()).hexdigest()
+
+# def hash_otp(otp: str) -> str:
+#     """ Hash OTP """
+#     return pwd_context.hash(otp)
+
+
+# def verify_otp(plain_otp: str, hashed_otp: str) -> bool:
+#     """ verify OTP """
+#     try:
+#         return pwd_context.verify(plain_otp, hashed_otp)
+#     except Exception as e:  # pylint: disable=broad-exception-caught
+#         print(f"Reset Token verification error: {e}")
+#         return False

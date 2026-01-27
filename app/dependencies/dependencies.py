@@ -7,6 +7,7 @@ from app.controllers.auth_controller import AuthController
 from app.controllers.post_controller import PostController
 from app.controllers.user_controller import UserController
 from app.core.database import get_db
+from app.repositories.password_reset_repository import PasswordResetRepository
 from app.repositories.post_repository import PostRepository
 from app.repositories.user_repository import UserRepository
 from app.services.auth_service import AuthService
@@ -27,15 +28,20 @@ def get_post_repository(db: DatabaseDep) -> PostRepository:
     """ Get PostRepository dependency """
     return PostRepository(db)
 
+def get_password_reset_repository(db: DatabaseDep) -> PasswordResetRepository:
+    """ Get PasswordResetRepository dependency """
+    return PasswordResetRepository(db)
+
 ## Service dependencies ##
 
 
 def get_auth_service(
     db: DatabaseDep,
-    user_repo: Annotated[UserRepository, Depends(get_user_repository)]
+    user_repo: Annotated[UserRepository, Depends(get_user_repository)],
+    password_reset_repo: Annotated[PasswordResetRepository, Depends(get_password_reset_repository)]
 ) -> AuthService:
     """ Get AuthService dependency """
-    return AuthService(user_repo, db)
+    return AuthService(user_repo,password_reset_repo, db)
 
 
 def get_user_service(
@@ -48,10 +54,10 @@ def get_user_service(
 
 def get_post_service(
         db: DatabaseDep,
-        user_repo: Annotated[PostRepository, Depends(get_post_repository)]
+        post_repo: Annotated[PostRepository, Depends(get_post_repository)]
 ) -> PostService:
     """ Get PostService dependency"""
-    return PostService(user_repo, db)
+    return PostService(post_repo, db)
 
 
 ## Controller dependencies ##

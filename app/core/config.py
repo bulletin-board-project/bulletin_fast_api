@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     CLOUDINARY_CLOUD_NAME: str
     CLOUDINARY_API_KEY: str
     CLOUDINARY_API_SECRET: str
+    
+    # OTP
+    OTP_SALT: str
 
     # MySQL Database
     MYSQL_HOST: str

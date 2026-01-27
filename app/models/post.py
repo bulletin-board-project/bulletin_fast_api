@@ -78,7 +78,7 @@ class Post(BaseModel):
 
     def soft_delete(self, deleted_by_user_id: int | None = None):
         """Soft delete the post"""
-        self.deleted_at = datetime.now(timezone.utc)
+        self.deleted_at = datetime.now()
         self.deleted_user_id = deleted_by_user_id
         self.status = Status.INACTIVE.value
     

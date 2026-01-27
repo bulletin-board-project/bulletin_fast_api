@@ -95,7 +95,7 @@ class User(BaseModel):
         self.lock_count += 1
         if self.lock_count >= 5:  # Lock after 5 failed attempts
             self.lock_flg = True
-            self.last_lock_at = datetime.now(timezone.utc)
+            self.last_lock_at = datetime.now()
 
     def reset_lock_count(self):
         """Reset failed login attempts"""
@@ -104,5 +104,5 @@ class User(BaseModel):
 
     def record_login(self):
         """Record successful login"""
-        self.last_login_at = datetime.now(timezone.utc)
+        self.last_login_at = datetime.now()
         self.reset_lock_count()

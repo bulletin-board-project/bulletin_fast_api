@@ -1,5 +1,5 @@
 """ User Service """
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 import math
 from typing import List, Optional
 from fastapi import HTTPException, UploadFile, status
@@ -230,7 +230,7 @@ class UserService:
                         "error_code": "PHONE_EXISTS"
                     }
                 )
-        
+
         if current_user.id == user_id and update_data.role != current_user.role:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -326,13 +326,13 @@ class UserService:
             # Perform soft delete
             deleted_count = self.user_repo.bulk_delete_users(
                 user_ids=user_ids,
-                deleted_at=datetime.utcnow(),
+                deleted_at=datetime.now(),
                 current_user=current_user
             )
 
             # Update other audit fields
             audit_fields = {
-                'updated_at': datetime.now(UTC),
+                'updated_at': datetime.now(),
                 'updated_user_id': current_user.id
             }
             audit_update_count = self.user_repo.bulk_update_general(
@@ -394,7 +394,7 @@ class UserService:
         lock_count_reset_value = 0
         last_lock_at_value = None
         audit_fields = {
-            'updated_at': datetime.now(UTC),
+            'updated_at': datetime.now(),
             'updated_user_id': current_user.id
         }
 
@@ -427,7 +427,7 @@ class UserService:
                 }
             )
         except Exception as e:
-            self.db.rollback()    
+            self.db.rollback()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=StandardResponse(
@@ -435,4 +435,4 @@ class UserService:
                     message=f"Failed to unlock users: {str(e)}",
                     error_code="INTERNAL_SERVER_ERROR"
                 ).model_dump()
-            )
+            ) from e

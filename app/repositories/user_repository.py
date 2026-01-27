@@ -1,5 +1,5 @@
 """ User repository module. """
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import List, Optional, Tuple, cast
 from sqlalchemy import asc, desc, or_, update
 from sqlalchemy.orm import Session, Query
@@ -53,7 +53,7 @@ class UserRepository:
 
     def delete(self, user: User) -> None:
         """Soft delete user"""
-        user.deleted_at = datetime.now(UTC)
+        user.deleted_at = datetime.now()
         self.db.add(user)
 
     def exists_by_email_or_phone(self, email: str, phone: Optional[str]) -> User | None:
